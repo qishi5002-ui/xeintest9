@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XeinStore - Digital Game Keys</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      background: #f9f9f9;
+    }
+    header {
+      background: #667eea;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.4rem;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 900px;
+      margin: auto;
+    }
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+      gap: 1rem;
+    }
+    .product {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .product h3 { margin: 0.5rem 0; }
+    select, button {
+      margin-top: 0.5rem;
+      padding: 0.4rem;
+    }
+    #cart {
+      margin-top: 2rem;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+    #cart h2 { margin-top: 0; }
+    #checkout {
+      margin-top: 1rem;
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .note {
+      background: #fff3cd;
+      border: 1px solid #ffeeba;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 6px;
+    }
+    #recent-purchases {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <header>XeinStore - Digital Game Keys</header>
+  <div class="container">
+    <div class="note">
+      <b>NOTE:</b> Please be reminded to screenshot your crypto payment and contact me on Telegram <b>@cocomelonqueen</b> after payment.
+    </div>
+    <div class="products" id="products"></div>
+
+    <div id="cart">
+      <h2>Your Cart</h2>
+      <div id="cart-items"></div>
+      <p><b>Total:</b> $<span id="cart-total">0.00</span></p>
+      <label>Telegram Username: <input type="text" id="telegram-username"></label><br><br>
+      <button id="checkout">Proceed to Payment</button>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div id="recent-purchases"></div>
+
+  <script>
+  const products = [
+    {id:1, title:"Xein Pubg Key", platform:"Digital Key", pricing:{
+      "1_day":5.00,"3_days":8.00,"7_days":12.00,"30_days":23.00}, icon:"🎯"},
+    {id:2, title:"Xein Delta Force Key", platform:"Digital Key", pricing:{
+      "1_day":4.00,"3_days":7.00,"7_days":11.00,"30_days":22.00}, icon:"⚡"}
+  ];
+  let cart=[];
+
+  // Render products
+  function renderProducts(){
+    const div=document.getElementById('products');
+    div.innerHTML='';
+    products.forEach(p=>{
+      let durations=Object.keys(p.pricing).map(d=>`<option value="${d}">${d.replace('_',' ')} - $${p.pricing[d]}</option>`).join('');
+      div.innerHTML+=`
+        <div class="product">
+          <div style="font-size:2rem">${p.icon}</div>
+          <h3>${p.title}</h3>
+          <p>${p.platform}</p>
+          <select id="duration-${p.id}">${durations}</select><br>
+          <button onclick="addToCart(${p.id})">Add to Cart</button>
+        </div>`;
+    });
+  }
+
+  // Add to cart
+  function addToCart(id){
+    const p=products.find(x=>x.id===id);
+    const sel=document.getElementById(`duration-${id}`);
+    const duration=sel.value;
+    const price=p.pricing[duration];
+    const exist=cart.find(x=>x.id===id && x.duration===duration);
+    if(exist) exist.qty++;
+    else cart.push({id:p.id,title:p.title,duration,qty:1,unitPrice:price});
+    updateCartUI();
+    showNotification('Added to cart ✅');
+  }
+
+  // Update cart
+  function updateCartUI(){
+    const container=document.getElementById('cart-items');
+    container.innerHTML='';
+    let total=0;
+    cart.forEach(item=>{
+      total+=item.qty*item.unitPrice;
+      container.innerHTML+=`<div>${item.title} (${item.duration}) x${item.qty} - $${(item.qty*item.unitPrice).toFixed(2)}</div>`;
+    });
+    document.getElementById('cart-total').textContent=total.toFixed(2);
+  }
+
+  // Checkout
+  document.getElementById('checkout').addEventListener('click',()=>{
+    const user=document.getElementById('telegram-username').value.trim();
+    if(!user){ alert("Please enter your Telegram username."); return; }
+    if(cart.length===0){ alert("Cart is empty."); return; }
+    localStorage.setItem('cart',JSON.stringify(cart));
+    localStorage.setItem('telegram',user);
+    window.location.href='receipt.html';
+  });
+
+  // Notifications
+  const telegramNames=["alpha","bravo","charlie","delta","echo","foxtrot","gamer","queen","legend","shadow","ghost"];
+  function randomPurchaseNotification(){
+    const prod=products[Math.floor(Math.random()*products.length)];
+    let name=telegramNames[Math.floor(Math.random()*telegramNames.length)];
+    const censored=name[0]+'***'+name[name.length-1];
+    const minutesAgo=Math.floor(Math.random()*59)+1;
+    const msg=`${censored} bought ${prod.title} ${minutesAgo} mins ago`;
+    const div=document.createElement('div');
+    div.textContent=msg;
+    div.style.background='#667eea';
+    div.style.color='white';
+    div.style.padding='0.5rem 1rem';
+    div.style.borderRadius='6px';
+    div.style.marginTop='6px';
+    document.getElementById('recent-purchases').appendChild(div);
+    setTimeout(()=>div.remove(),15000);
+  }
+  setInterval(randomPurchaseNotification,6000);
+  randomPurchaseNotification();
+
+  // Toast
+  function showNotification(msg){
+    const div=document.createElement('div');
+    div.textContent=msg;
+    div.style.position='fixed';
+    div.style.bottom='80px';
+    div.style.right='20px';
+    div.style.background='rgba(0,0,0,0.85)';
+    div.style.color='white';
+    div.style.padding='.8rem 1rem';
+    div.style.borderRadius='8px';
+    div.style.zIndex='10000';
+    document.body.appendChild(div);
+    setTimeout(()=>div.remove(),2000);
+  }
+
+  renderProducts();
+  updateCartUI();
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt - XeinStore</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0; padding: 2rem;
+    }
+    .receipt {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      max-width: 700px;
+      margin: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .receipt h2 { margin-top: 0; color:#667eea; }
+    table { width:100%; border-collapse: collapse; margin:1rem 0; }
+    th,td { border:1px solid #ddd; padding:0.6rem; text-align:left; }
+    .note { background:#fff3cd; border:1px solid #ffeeba; padding:1rem; border-radius:6px; }
+    #recent-purchases {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt">
+    <h2>Payment Receipt</h2>
+    <p><b>Status:</b> Awaiting Verification ⏳</p>
+    <p><b>Telegram Username:</b> <span id="user"></span></p>
+    <table>
+      <thead><tr><th>Product</th><th>Duration</th><th>Qty</th><th>Total</th></tr></thead>
+      <tbody id="items"></tbody>
+    </table>
+    <p><b>Amount to Pay:</b> $<span id="total"></span></p>
+    <p><b>USDT (TRC20) Wallet:</b> <span style="color:#667eea;">TXQW9D3y4zExampleWallet123</span></p>
+    <div class="note">
+      NOTE: Please be reminded to screenshot your crypto payment and contact me on Telegram <b>@cocomelonqueen</b> after paying.
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div id="recent-purchases"></div>
+
+  <script>
+  const cart=JSON.parse(localStorage.getItem('cart')||'[]');
+  const user=localStorage.getItem('telegram')||'';
+  document.getElementById('user').textContent=user;
+  const tbody=document.getElementById('items');
+  let total=0;
+  cart.forEach(item=>{
+    const row=document.createElement('tr');
+    row.innerHTML=`<td>${item.title}</td><td>${item.duration}</td><td>${item.qty}</td><td>$${(item.qty*item.unitPrice).toFixed(2)}</td>`;
+    tbody.appendChild(row);
+    total+=item.qty*item.unitPrice;
+  });
+  document.getElementById('total').textContent=total.toFixed(2);
+
+  // Notifications
+  const products=[{title:"Xein Pubg Key"},{title:"Xein Delta Force Key"}];
+  const telegramNames=["alpha","bravo","charlie","delta","echo","foxtrot","gamer","queen","legend","shadow","ghost"];
+  function randomPurchaseNotification(){
+    const prod=products[Math.floor(Math.random()*products.length)];
+    let name=telegramNames[Math.floor(Math.random()*telegramNames.length)];
+    const censored=name[0]+'***'+name[name.length-1];
+    const minutesAgo=Math.floor(Math.random()*59)+1;
+    const msg=`${censored} bought ${prod.title} ${minutesAgo} mins ago`;
+    const div=document.createElement('div');
+    div.textContent=msg;
+    div.style.background='#667eea';
+    div.style.color='white';
+    div.style.padding='0.5rem 1rem';
+    div.style.borderRadius='6px';
+    div.style.marginTop='6px';
+    document.getElementById('recent-purchases').appendChild(div);
+    setTimeout(()=>div.remove(),15000);
+  }
+  setInterval(randomPurchaseNotification,6000);
+  randomPurchaseNotification();
+  </script>
+</body>
+</html>
